@@ -1,0 +1,641 @@
+openapi: 3.0.3
+info:
+  title: Bank Sampah Digital API
+  version: 1.0.0
+  description: |
+    API untuk nasabah, petugas, dan admin bank sampah. Semua path memakai prefix /api/v1.
+    Sukses: {data: ..., meta: {...}}. Error: {error: {code, message, details}}.
+    Saldo diturunkan dari ledger; poin setoran dibulatkan ke rupiah terdekat.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      security: []
+      summary: Daftarkan nasabah baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: Ayu
+              email: ayu@example.test
+              password: password-yang-dipilih
+              password_confirmation: password-yang-dipilih
+      responses:
+        '201':
+          description: Akun dibuat dan token diterbitkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/login:
+    post:
+      security: []
+      summary: Login dan terbitkan token 12 jam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: ayu@example.test
+              password: password-yang-dipilih
+      responses:
+        '200':
+          description: Token Bearer baru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+  /auth/me:
+    get:
+      summary: Profil pemilik token
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/ApiError'
+  /auth/logout:
+    post:
+      summary: Cabut token saat ini
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+  /jenis-sampah:
+    get:
+      security: []
+      summary: Daftar jenis sampah aktif
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+    post:
+      summary: Buat jenis sampah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WasteTypeInput'
+            example:
+              name: Plastik PET
+              price_per_kg: 3000
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /jenis-sampah/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      security: []
+      summary: Detail jenis sampah
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '404':
+          $ref: '#/components/responses/ApiError'
+    put:
+      summary: Ganti data jenis sampah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WasteTypeInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah sebagian data jenis sampah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WasteTypeInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Nonaktifkan jenis sampah (admin)
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /hadiah:
+    get:
+      security: []
+      summary: Daftar hadiah aktif
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+    post:
+      summary: Buat hadiah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardInput'
+            example:
+              name: Bibit tanaman
+              points_required: 3000
+              stock: 20
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /hadiah/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      security: []
+      summary: Detail hadiah
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '404':
+          $ref: '#/components/responses/ApiError'
+    put:
+      summary: Ganti data hadiah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah sebagian data hadiah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Nonaktifkan hadiah (admin)
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /titik-setor:
+    get:
+      security: []
+      summary: Daftar titik setor beserta jenis sampah yang diterima
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/perPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+    post:
+      summary: Buat titik setor dan pasangkan jenis sampah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, address, jenis_sampah_ids]
+              properties:
+                name: {type: string}
+                address: {type: string}
+                phone: {type: string, nullable: true}
+                jenis_sampah_ids:
+                  type: array
+                  items: {type: integer}
+            example:
+              name: Titik Utara
+              address: Jalan Merdeka
+              jenis_sampah_ids: [1, 2]
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /titik-setor/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      security: []
+      summary: Detail titik setor dan kategori yang diterima
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '404':
+          $ref: '#/components/responses/ApiError'
+    put:
+      summary: Ganti data titik setor dan/atau relasi jenis sampah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+                address: {type: string}
+                phone: {type: string, nullable: true}
+                jenis_sampah_ids:
+                  type: array
+                  items: {type: integer}
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah sebagian data titik setor (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+                address: {type: string}
+                phone: {type: string, nullable: true}
+                jenis_sampah_ids:
+                  type: array
+                  items: {type: integer}
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Nonaktifkan titik setor (admin)
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /nasabah:
+    get:
+      summary: Daftar nasabah (admin)
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/perPage'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /nasabah/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Profil nasabah; nasabah hanya dapat melihat profil sendiri
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+    patch:
+      summary: Ubah profil (tanpa mengubah role atau email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /nasabah/{id}/role:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    patch:
+      summary: Ubah peran nasabah (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [nasabah, petugas, admin]
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /nasabah/{id}/saldo:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Lihat saldo yang dihitung dari ledger
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /nasabah/{id}/transaksi:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Riwayat transaksi nasabah
+      parameters:
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+        - name: dari
+          in: query
+          description: Tanggal mulai (inklusif)
+          schema:
+            type: string
+            format: date
+        - name: sampai
+          in: query
+          description: Tanggal akhir (inklusif)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /setoran:
+    get:
+      summary: Daftar setoran sesuai hak akses
+      parameters:
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+    post:
+      summary: Catat setoran (petugas/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositInput'
+            example:
+              nasabah_id: 1
+              jenis_sampah_id: 1
+              berat_kg: 1.25
+              catatan: Botol bersih
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /setoran/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Detail setoran sesuai hak akses
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /transaksi:
+    get:
+      summary: Riwayat ledger transaksi
+      parameters:
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+  /transaksi/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Detail transaksi ledger sesuai hak akses
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /penukaran:
+    get:
+      summary: Daftar penukaran sesuai hak akses
+      parameters:
+        - $ref: '#/components/parameters/perPage'
+        - $ref: '#/components/parameters/direction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+    post:
+      summary: Tukar poin menjadi hadiah (nasabah)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedemptionInput'
+            example:
+              hadiah_id: 1
+              jumlah: 1
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/ApiError'
+  /penukaran/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Detail penukaran sesuai hak akses
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+  /laporan/bulanan:
+    get:
+      summary: Rekap bulanan per jenis sampah (admin)
+      parameters:
+        - name: tahun
+          in: query
+          schema:
+            type: integer
+        - name: bulan
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/ApiError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    search:
+      name: search
+      in: query
+      schema:
+        type: string
+    perPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+    direction:
+      name: direction
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: {type: string}
+        email: {type: string, format: email}
+        phone: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+        password: {type: string, minLength: 8}
+        password_confirmation: {type: string}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string}
+    AuthResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user: {type: object}
+            token: {type: string}
+            token_type: {type: string, example: Bearer}
+            expires_at: {type: string, format: date-time}
+        meta: {type: object}
+    WasteTypeInput:
+      type: object
+      properties:
+        name: {type: string}
+        description: {type: string, nullable: true}
+        price_per_kg: {type: integer, minimum: 1}
+        is_active: {type: boolean}
+    RewardInput:
+      type: object
+      properties:
+        name: {type: string}
+        description: {type: string, nullable: true}
+        points_required: {type: integer, minimum: 1}
+        stock: {type: integer, minimum: 0}
+        is_active: {type: boolean}
+    MemberInput:
+      type: object
+      properties:
+        name: {type: string}
+        phone: {type: string, nullable: true}
+        address: {type: string, nullable: true}
+    DepositInput:
+      type: object
+      required: [nasabah_id, jenis_sampah_id, berat_kg]
+      properties:
+        nasabah_id: {type: integer}
+        jenis_sampah_id: {type: integer}
+        berat_kg: {type: number, minimum: 0.001, maximum: 10000}
+        catatan: {type: string, nullable: true}
+    RedemptionInput:
+      type: object
+      required: [hadiah_id, jumlah]
+      properties:
+        hadiah_id: {type: integer}
+        jumlah: {type: integer, minimum: 1, maximum: 10000}
+    Success:
+      type: object
+      properties:
+        data: {}
+        meta: {type: object}
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: {type: string}
+            message: {type: string}
+            details: {type: object}
+  responses:
+    Success:
+      description: Operasi berhasil
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Success'
+    ApiError:
+      description: Kesalahan autentikasi, akses, atau resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    ValidationError:
+      description: Input tidak valid (HTTP 422)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'

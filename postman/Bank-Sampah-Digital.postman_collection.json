@@ -1,0 +1,150 @@
+{
+  "info": {
+    "_postman_id": "4ec9a67c-76ca-4bf1-8c3d-b723861a9733",
+    "name": "Bank Sampah Digital API",
+    "description": "Smoke tests sukses dan gagal per resource. Isi email/password untuk akun nasabah dan petugas yang sudah dibuat; isi member_id sesuai akun nasabah. Jalankan berurutan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://127.0.0.1:8000/api/v1"},
+    {"key": "member_email", "value": ""},
+    {"key": "member_password", "value": ""},
+    {"key": "staff_email", "value": ""},
+    {"key": "staff_password", "value": ""},
+    {"key": "member_id", "value": "1"},
+    {"key": "member_token", "value": ""},
+    {"key": "staff_token", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Auth - login nasabah",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"email\":\"{{member_email}}\",\"password\":\"{{member_password}}\"}"},
+        "url": "{{base_url}}/auth/login"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('login nasabah berhasil', () => pm.response.to.have.status(200));", "if (pm.response.code === 200) pm.collectionVariables.set('member_token', pm.response.json().data.token);"]}}]
+    },
+    {
+      "name": "Auth - login petugas",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"email\":\"{{staff_email}}\",\"password\":\"{{staff_password}}\"}"},
+        "url": "{{base_url}}/auth/login"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('login petugas berhasil', () => pm.response.to.have.status(200));", "if (pm.response.code === 200) pm.collectionVariables.set('staff_token', pm.response.json().data.token);"]}}]
+    },
+    {
+      "name": "Auth - password salah",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"email\":\"{{member_email}}\",\"password\":\"{{member_password}}-salah\"}"},
+        "url": "{{base_url}}/auth/login"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('kredensial salah ditolak', () => pm.response.to.have.status(401));", "pm.test('kode autentikasi tersedia', () => pm.expect(pm.response.json().error.code).to.eql('invalid_credentials'));"]}}]
+    },
+    {
+      "name": "Jenis sampah - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/jenis-sampah"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar jenis sampah berhasil', () => pm.response.to.have.status(200));", "pm.test('format data dan meta tersedia', () => { const body = pm.response.json(); pm.expect(body).to.have.property('data'); pm.expect(body).to.have.property('meta'); });"]}}]
+    },
+    {
+      "name": "Jenis sampah - id tidak ada",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/jenis-sampah/99999999"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('jenis sampah tidak ditemukan', () => pm.response.to.have.status(404));"]}}]
+    },
+    {
+      "name": "Hadiah - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/hadiah"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar hadiah berhasil', () => pm.response.to.have.status(200));"]}}]
+    },
+    {
+      "name": "Hadiah - id tidak ada",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/hadiah/99999999"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('hadiah tidak ditemukan', () => pm.response.to.have.status(404));"]}}]
+    },
+    {
+      "name": "Titik setor - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/titik-setor"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar titik setor berhasil', () => pm.response.to.have.status(200));"]}}]
+    },
+    {
+      "name": "Titik setor - id tidak ada",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/titik-setor/99999999"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('titik setor tidak ditemukan', () => pm.response.to.have.status(404));"]}}]
+    },
+    {
+      "name": "Nasabah - profil sendiri",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{member_token}}"}], "url": "{{base_url}}/nasabah/{{member_id}}"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('profil nasabah berhasil', () => pm.response.to.have.status(200));"]}}]
+    },
+    {
+      "name": "Nasabah - id tidak ada",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{member_token}}"}], "url": "{{base_url}}/nasabah/99999999"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('nasabah tidak ditemukan', () => pm.response.to.have.status(404));"]}}]
+    },
+    {
+      "name": "Setoran - catat setoran sukses",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{staff_token}}"}],
+        "body": {"mode": "raw", "raw": "{\"nasabah_id\":{{member_id}},\"jenis_sampah_id\":1,\"berat_kg\":2,\"catatan\":\"Uji Postman\"}"},
+        "url": "{{base_url}}/setoran"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('setoran berhasil dicatat', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.test('ledger setoran terbuat', () => pm.expect(pm.response.json().data).to.have.property('transaction'));"]}}]
+    },
+    {
+      "name": "Setoran - validasi berat gagal",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{staff_token}}"}],
+        "body": {"mode": "raw", "raw": "{\"nasabah_id\":{{member_id}},\"jenis_sampah_id\":1,\"berat_kg\":0}"},
+        "url": "{{base_url}}/setoran"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('berat tidak valid ditolak', () => pm.response.to.have.status(422));", "pm.test('error memiliki format seragam', () => pm.expect(pm.response.json().error).to.have.property('details'));"]}}]
+    },
+    {
+      "name": "Setoran - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{staff_token}}"}], "url": "{{base_url}}/setoran"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar setoran berhasil', () => pm.response.to.have.status(200));"]}}]
+    },
+    {
+      "name": "Transaksi - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{staff_token}}"}], "url": "{{base_url}}/transaksi"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar ledger berhasil', () => pm.response.to.have.status(200));"]}}]
+    },
+    {
+      "name": "Transaksi - id tidak ada",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{staff_token}}"}], "url": "{{base_url}}/transaksi/99999999"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('transaksi tidak ditemukan', () => pm.response.to.have.status(404));"]}}]
+    },
+    {
+      "name": "Penukaran - sukses",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{member_token}}"}],
+        "body": {"mode": "raw", "raw": "{\"hadiah_id\":1,\"jumlah\":1}"},
+        "url": "{{base_url}}/penukaran"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('penukaran berhasil', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.test('ledger penukaran terbuat', () => pm.expect(pm.response.json().data).to.have.property('transaction'));"]}}]
+    },
+    {
+      "name": "Penukaran - saldo tidak cukup",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{member_token}}"}],
+        "body": {"mode": "raw", "raw": "{\"hadiah_id\":1,\"jumlah\":1}"},
+        "url": "{{base_url}}/penukaran"
+      },
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('saldo tidak cukup ditolak', () => pm.response.to.have.status(422));", "pm.test('kode error benar', () => pm.expect(pm.response.json().error.code).to.eql('insufficient_points'));"]}}]
+    },
+    {
+      "name": "Penukaran - daftar sukses",
+      "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{member_token}}"}], "url": "{{base_url}}/penukaran"},
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('daftar penukaran berhasil', () => pm.response.to.have.status(200));"]}}]
+    }
+  ]
+}
